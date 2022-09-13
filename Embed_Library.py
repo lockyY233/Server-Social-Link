@@ -1,6 +1,6 @@
 import discord
+import random
 
-from Main import slink_menu
 """ Embed Template: 
 -------------------------------------
 'title': 'Test_title', 
@@ -73,6 +73,22 @@ Menu_embed = {
             'value': "I'm looking forward seeing you"
         }
     ]
+}
+I_M_Thou = {
+    "Persona 3 Portable": "Thou art I... And I am thou...\nThou hast established a new bond...\nThou shalt be blessed when creating\nPersonas of the ARCANA_DEFAULT Arcana...",
+    "Persona 4": "Thou art I... And I am thou...\nThou hast established a new bond...\nIt brings thee closer to the truth...\nThou shalt be blessed when creating\nPersonas of the ARCANA_DEFAULT Arcana...",
+    "Persona 4 Golden": "Thou art I... And I am thou...\nThou hast seen how bonds may change...\nThe bond that hath changed... It is thy\nfirst step in learning the truth.\nThou must bear thine inner power of ARCANA_DEFAULT",
+    "Persona 5": "I am thou... Thou art I...\nThou hast acquired a new vow...\nIt shall become the wings of rebellion\nThat breaketh thy chains of captivity.\nWith the birth of ARCANA_DEFAULT Persona\nI have obtained the winds of blessing that\nshall lead to freedom and new power...",
+    "Persona 5 Royal": "I am thou, thou art I...\nMy vow stands renewed in pursuit of the truth.\nIn breaking free of doubt, the chain that impedes\nthee, is thy strength of heart made manifest.\nWith the rebirth of the ARCANA_DEFAULT,\nThou hast obtained the winds of blessing that\nshall guide thee to the furthest depths."
+}
+
+Register_embed = {
+    'title': 'I am Thou ...Thou art I...',
+    'description': '',
+    'color': 0x3532d9,
+    'thumbnail': {
+        'url':''
+    }
 }
 
 Slink_embed = {
