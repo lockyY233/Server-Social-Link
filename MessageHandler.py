@@ -8,4 +8,4 @@ class MessageHandler(discord.Bot):
         print(f"{self.user} is ready and online!")
 
     async def on_message(self, message):
-        print("Message sent from {0.author}: {0.content}".format(message))
+        print("Message sent from {0.author.id}: {0.content}".format(message))

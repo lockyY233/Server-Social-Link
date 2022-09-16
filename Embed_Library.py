@@ -74,7 +74,7 @@ Menu_embed = {
         }
     ]
 }
-I_M_Thou = {
+I_M_Thou = {# dict for all random Thou art I message
     "Persona 3 Portable": "Thou art I... And I am thou...\nThou hast established a new bond...\nThou shalt be blessed when creating\nPersonas of the ARCANA_DEFAULT Arcana...",
     "Persona 4": "Thou art I... And I am thou...\nThou hast established a new bond...\nIt brings thee closer to the truth...\nThou shalt be blessed when creating\nPersonas of the ARCANA_DEFAULT Arcana...",
     "Persona 4 Golden": "Thou art I... And I am thou...\nThou hast seen how bonds may change...\nThe bond that hath changed... It is thy\nfirst step in learning the truth.\nThou must bear thine inner power of ARCANA_DEFAULT",
@@ -83,16 +83,24 @@ I_M_Thou = {
 }
 
 Register_embed = {
+    # dict for I am Thou message when registering for the game
     'title': 'I am Thou ...Thou art I...',
     'description': '',
     'color': 0x3532d9,
     'thumbnail': {
         'url':''
-    }
+    },
+    'fields': [
+            {
+                'name': '',
+                'value': ''
+            }
+        ]
 }
 
+
 Slink_embed = {
-    #dict for Slink status embed 
+    # dict for Slink status embed 
 }
 
 Persona_embed = {

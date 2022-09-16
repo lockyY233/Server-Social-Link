@@ -11,6 +11,7 @@
 #
 
 import discord
+from discord.ext.commands import has_permissions, CheckFailure
 
 from MessageHandler import MessageHandler
 import Embed_Library
@@ -40,10 +41,28 @@ async def velvetRoom (ctx):
 # Register / sign up for the game
 @bot.slash_command(name = "register", description = "sign up to join this server game with your friends!")
 async def register(ctx):
-    await ctx.respond("Warning: you will be randomly assign an arcana")
-    IMThou_embed = User.I_M_Thou_embed()
-    IMThou = discord.Embed.from_dict(User.I_M_Thou_embed())
-    await ctx.respond(embed=IMThou)
+    if User.is_user_guild_exist(ctx) == False:
+        await ctx.respond("**Warning: you will be randomly assign an arcana**")
+        User.new_user(ctx)
+        Arcana = User.get_arcana(ctx)
+        #print(Arcana)
+        IMThou = discord.Embed.from_dict(User.New_registered_user_embed(User.I_M_Thou_embed(Arcana), Arcana))
+        await ctx.channel.send('<@!' + str(ctx.author.id) + '>', embed=IMThou)
+    else:
+        await ctx.respond("You have already registered! Please visit Velvet Room for more info!")
+
+# ------ Reset Command ------
+@bot.slash_command(name = "reset", description = "Are You Worthy?")
+@has_permissions(administrator = True)
+async def reset_user(ctx):
+    User.RESET_USER_JSON(ctx)
+    await ctx.respond(embed = discord.Embed.from_dict({'description': 'Wipe Successfull!', 'image':{'url':'https://c.tenor.com/TG5OF7UkLasAAAAC/thanos-infinity.gif'}}))
+        
+@reset_user.error
+async def reset_user_error(ctx, error):
+    if isinstance(error, CheckFailure):
+        await ctx.respond(embed = discord.Embed.from_dict({'description': 'Your will is not strong enough', 'image':{'url':'https://media4.giphy.com/media/Q9ALJWddHdQketr7D8/giphy.gif'}}))
+# ------ Reset Error ------
 
 # Social link status command
 @bot.slash_command(name = "slink", description = "Check your Social Link progress on different arcana")
@@ -63,12 +82,6 @@ async def persona(ctx):
     dungeon_menu = discord.Embed.from_dict(Embed_Library.Dungeon_embed)
     await ctx.respond(embed=dungeon_menu)
 #------------------------------------------------------------------------------------#
-'''
-User.RESET_JSON()
-User.user_register('locky', 'Fool', 'Izanagi')
-User.user_register('Luno', 'Fool', 'Orpheous')
-'''
-#print(discord.Embed.from_dict(User.I_M_Thou_embed()))
 
 ############# run the bot with the token #############
 bot.run(os.getenv('TOKEN'))
