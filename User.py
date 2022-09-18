@@ -5,6 +5,7 @@ import random
 
 from data.Persona_Data import ARCANA
 import Embed_Library
+from data import sql_utils
 
 
 class user:
@@ -19,8 +20,7 @@ class user:
     Userid = 0
     Guild_id = 0
     Arcana = 'ARCANA_DEFAULT'
-    Persona = 'PERSONA_DEFAULT'
-    Persona_level = 1
+    User_level = 0
     S_Link_Level = {
                     'Fool': 0,
                     'Jester': 0,
@@ -62,75 +62,53 @@ def random_arca():
 
     
 
-def RESET_USER_JSON(ctx):
-    with open('data/USER.json', 'r') as f:
-        USERS = json.load(f)
-        for x in USERS['Users'][:]:
-            #print(x)
-            if x['Guild_id'] == ctx.guild_id:
-                USERS['Users'].remove(x)
-        with open('data/USER.json', 'w') as f:
-                json.dump(USERS, f, indent=2)
-
+def RESET_USER_DB(ctx):
+    # remove all users with the same guild id
+    sql_utils.sql_reset(ctx.guild_id)
+'''
 def is_user_exist(ctx):
     # reference in main.py. check if user exist in select guild
     with open('data/USER.json', 'r') as f:
         USER = json.load(f)
         for User in USER['Users']:
             return is_user_guild_exist(ctx, User)
-
-'''
-    for x in USER['Users']:
-        try: 
-            if x['id'] == userid:
-                return True
-        except:
-            continue
-    return False
 '''
 
-def is_user_guild_exist(ctx, USER):
-        #print(str(ctx.guild_id) + ',  ' + str(x['Guild_id']))
-        #print(x['id'] == ctx.author.id and x['Guild_id'] == ctx.guild_id)
-        if (USER['id'] == ctx.author.id and USER['Guild_id'] == ctx.guild_id):
-                return True
+def is_user_guild_exist(ctx):
+    # fetch user info in db
+    condition = 'user_id = {0} AND guild_id = {1}'.format(ctx.author.id, ctx.guild_id)
+    if not sql_utils.get_data('*', condition) == []:
+        return True
+    else:
         return False
 
 
 def user_register(user):# take in a user object, create a user
-    with open('data/USER.json', 'r') as f:
-        USER = json.load(f)
-
-    # User json default format
-    user_info = {'Name': user.Name,
-                'id': user.Userid,
-                'Guild_id': user.Guild_id,
-                'Arcana': user.Arcana, 
-                'Persona': user.Persona,
-                'Persona_level': user.Persona_level,
-                'S_Link_Level': user.S_Link_Level
-                }
-
-    #if is_user_exist(user.Name, USER) == False:
-    with open('data/USER.json', 'w') as f:
-        USER['Users'].append(user_info)
-        #print(USER)
-        json.dump(USER, f, indent = 2)
+    user_info = {'name': user.Name,
+            'user_id': user.Userid,
+            'guild_id': user.Guild_id,
+            'user_level': user.User_level,
+            'arcana': user.Arcana
+            }
+    print(user_info)
+    sql_utils.sql_register(user_info) 
 
 def new_user(ctx):
     Arcana = random_arca()
     new_user = user(str(ctx.author), ctx.author.id, ctx.guild_id, Arcana)
-    if user_register(new_user) == False:
-        return False
+    user_register(new_user)
 
-def get_arcana(ctx):
-    # take in user with string
-    with open('data/USER.json', 'r') as f:
-        f = json.load(f)
-        for User in f['Users']:
-            #print(User)
-            if is_user_guild_exist(ctx, User): #(User['id'] == ctx.author.id and User['Guild_id'] == ctx.guild_id):
-                return User['Arcana']
+def get_arcana(ctx): 
+    condition = 'user_id = {0} AND guild_id = {1}'.format(ctx.author.id, ctx.guild_id)
+    arcana = sql_utils.get_data('arcana', condition)
+    # arcana will be return as list
+    if not arcana == []:
+        arcana = str(arcana)
+        arcana = arcana.replace("[('", '')
+        arcana = arcana.replace("',)]", '')
+        return arcana
+    else: 
+        return None
 
 def random_I_M_Thou(arcana):
     # return the string of one of the I am Thou message located in Embed library
