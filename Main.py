@@ -20,6 +20,7 @@ from data import Persona_Data
 
 import os # default module
 from dotenv import load_dotenv
+import json
 
 load_dotenv() # load all the variables from the env file
 
@@ -38,10 +39,10 @@ async def velvetRoom (ctx):
     menu = discord.Embed.from_dict(Embed_Library.Menu_embed)
     await ctx.respond(embed=menu)
 
-# Register / sign up for the game
+# - Register / sign up for the game
 @bot.slash_command(name = "register", description = "sign up to join this server game with your friends!")
 async def register(ctx):
-    if User.is_user_guild_exist(ctx) == False:
+    if User.is_user_exist(ctx) == False:
         await ctx.respond("**Warning: you will be randomly assign an arcana**")
         User.new_user(ctx)
         Arcana = User.get_arcana(ctx)
@@ -64,7 +65,7 @@ async def reset_user_error(ctx, error):
         await ctx.respond(embed = discord.Embed.from_dict({'description': 'Your will is not strong enough', 'image':{'url':'https://media4.giphy.com/media/Q9ALJWddHdQketr7D8/giphy.gif'}}))
 # ------ Reset Error ------
 
-# Social link status command
+# - Social link status command
 @bot.slash_command(name = "slink", description = "Check your Social Link progress on different arcana")
 async def slink_menu(ctx):
     slink_menu = discord.Embed.from_dict(Embed_Library.Slink_embed)

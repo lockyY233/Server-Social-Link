@@ -1,10 +1,11 @@
 # Managing users or players, handling User.json
 
 import json
+import random
+
 from data.Persona_Data import ARCANA
 import Embed_Library
-import discord
-import random
+
 
 class user:
 
@@ -71,8 +72,14 @@ def RESET_USER_JSON(ctx):
         with open('data/USER.json', 'w') as f:
                 json.dump(USERS, f, indent=2)
 
-def is_user_exist(userid, USER):
-    # username is a id int, USER is the imported list of dictionary
+def is_user_exist(ctx):
+    # reference in main.py. check if user exist in select guild
+    with open('data/USER.json', 'r') as f:
+        USER = json.load(f)
+        for User in USER['Users']:
+            return is_user_guild_exist(ctx, User)
+
+'''
     for x in USER['Users']:
         try: 
             if x['id'] == userid:
@@ -80,15 +87,12 @@ def is_user_exist(userid, USER):
         except:
             continue
     return False
+'''
 
-def is_user_guild_exist(ctx):
-    with open('data/USER.json', 'r') as f:
-        USER = json.load(f)
-        for x in USER['Users']:
-            #print(str(ctx.guild_id) + ',  ' + str(x['Guild_id']))
-            #print(x['id'] == ctx.author.id and x['Guild_id'] == ctx.guild_id)
-            
-            if (x['id'] == ctx.author.id and x['Guild_id'] == ctx.guild_id):
+def is_user_guild_exist(ctx, USER):
+        #print(str(ctx.guild_id) + ',  ' + str(x['Guild_id']))
+        #print(x['id'] == ctx.author.id and x['Guild_id'] == ctx.guild_id)
+        if (USER['id'] == ctx.author.id and USER['Guild_id'] == ctx.guild_id):
                 return True
         return False
 
@@ -125,7 +129,7 @@ def get_arcana(ctx):
         f = json.load(f)
         for User in f['Users']:
             #print(User)
-            if (User['id'] == ctx.author.id and User['Guild_id'] == ctx.guild_id):
+            if is_user_guild_exist(ctx, User): #(User['id'] == ctx.author.id and User['Guild_id'] == ctx.guild_id):
                 return User['Arcana']
 
 def random_I_M_Thou(arcana):

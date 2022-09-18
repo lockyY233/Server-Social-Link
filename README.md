@@ -13,3 +13,5 @@ to do list:
 - add /slink command to calculate slink
 
 - detect conversation (have a buffer recording all messages)
+
+- detect voice chat
