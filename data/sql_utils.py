@@ -1,22 +1,35 @@
 import sqlite3
 
-def sql_cmd(*args):
+def sql_cmd(*args, use_fk = False):
     # basic connection command flow
     conn = sqlite3.connect('data/USER.sqlite')
     curs = conn.cursor()
+    if use_fk:
+        conn.execute("PRAGMA foreign_keys = ON")
     curs.execute(*args)
     conn.commit()
     conn.close()
 
 def sql_reset(guild_id):
-    sql_cmd("DELETE FROM User WHERE guild_id={0}".format(guild_id))
+    sql_cmd(f"DELETE FROM User WHERE guild_id={guild_id}", use_fk=True)
 
 def sql_register(user_info):
-    # take in a user dictionary with basic info, register info into db
-    sql_cmd("INSERT INTO User (name, user_id, guild_id, user_level, arcana) VALUES (:name, :user_id, :guild_id, :user_level, :arcana);", user_info)
+    # take in a user dictionary with basic info, register info into dbconn = sqlite3.connect('data/USER.sqlite')
+    Insert_User = """INSERT INTO User (name, user_id, guild_id, user_level, arcana)
+                 VALUES (:name, :user_id, :guild_id, :user_level, :arcana);"""
+    Insert_Arca_lvl = "INSERT INTO Arcana_level DEFAULT VALUES"
+    Insert_Arca_xp = "INSERT INTO Arcana_xp DEFAULT VALUES"
+    conn = sqlite3.connect('data/USER.sqlite')
+    curs = conn.cursor()
+    curs.execute(Insert_User, user_info)
+    curs.execute(Insert_Arca_lvl)
+    curs.execute(Insert_Arca_xp)
+    conn.commit()
+    conn.close()
+    
 
-def get_data(value, condition):
-    querry = "SELECT {} from User WHERE {}".format(value, condition)
+def get_data(value, table,  condition):
+    querry = f"SELECT {value} from {table} WHERE {condition}"
     conn = sqlite3.connect('data/USER.sqlite')
     curs = conn.cursor()
     curs.execute(querry)

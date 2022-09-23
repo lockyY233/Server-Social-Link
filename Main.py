@@ -8,12 +8,12 @@
 # Used API: Pycord 
 #
 # debug guild id: 805739900850536478
-#
+# external library: pycord, aiorun
 
 import discord
 from discord.ext.commands import has_permissions, CheckFailure
 
-from MessageHandler import MessageHandler
+from SlinkBot import SlinkBot
 import Embed_Library
 import User
 from data import Persona_Data
@@ -26,10 +26,11 @@ def set_intent(intent):
     # configure intents
     intent.message_content = True
     intent.voice_states = True
+    intent.members = True
 
 intent = discord.Intents.all()
 set_intent(intent)
-bot = MessageHandler(debug_guilds=[], intents=intent)
+bot = SlinkBot(debug_guilds=[], intents=intent)
 # debug_guilds=[805739900850536478]
 
 #--------------------------------------COMMANDS--------------------------------------#
@@ -74,13 +75,13 @@ async def slink_menu(ctx):
     slink_menu = discord.Embed.from_dict(Embed_Library.Slink_embed)
     await ctx.respond(embed=slink_menu)
 
-# Persona Status Command
+# - Persona Status Command
 @bot.slash_command(name = "persona", description = "Check your current Persona")
 async def persona(ctx):
     persona_menu = discord.Embed.from_dict(Embed_Library.Persona_embed)
     await ctx.respond(embed=persona_menu)
 
-# Dungeon Status Command
+# - Dungeon Status Command
 @bot.slash_command(name = "dungeon", description = "Check your current dungeon progress")
 async def persona(ctx):
     dungeon_menu = discord.Embed.from_dict(Embed_Library.Dungeon_embed)

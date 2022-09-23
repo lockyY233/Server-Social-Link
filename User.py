@@ -77,7 +77,7 @@ def is_user_exist(ctx):
 def is_user_guild_exist(ctx):
     # fetch user info in db
     condition = 'user_id = {0} AND guild_id = {1}'.format(ctx.author.id, ctx.guild_id)
-    if not sql_utils.get_data('*', condition) == []:
+    if not sql_utils.get_data('*','User', condition) == []:
         return True
     else:
         return False
@@ -100,7 +100,7 @@ def new_user(ctx):
 
 def get_arcana(ctx): 
     condition = 'user_id = {0} AND guild_id = {1}'.format(ctx.author.id, ctx.guild_id)
-    arcana = sql_utils.get_data('arcana', condition)
+    arcana = sql_utils.get_data('arcana','User', condition)
     # arcana will be return as list
     if not arcana == []:
         arcana = str(arcana)
