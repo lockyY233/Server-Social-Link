@@ -8,7 +8,7 @@
 # Used API: Pycord 
 #
 # debug guild id: 805739900850536478
-# external library: pycord, aiorun
+# external library: pycord, aiojobs
 
 import discord
 from discord.ext.commands import has_permissions, CheckFailure
@@ -44,10 +44,10 @@ async def velvetRoom (ctx):
 # - Register / sign up for the game
 @bot.slash_command(name = "register", description = "sign up to join this server game with your friends!")
 async def register(ctx):
-    if not User.is_user_guild_exist(ctx):
+    if not User.is_user_guild_exist(ctx.author.id, ctx.guild_id):
         await ctx.respond("**Warning: you will be randomly assign an arcana**")
         User.new_user(ctx)
-        Arcana = User.get_arcana(ctx)
+        Arcana = User.get_arcana(author_id = ctx.author.id, guild_id = ctx.guild_id)
         print("Arcana: " + str(Arcana))
         IMThou = discord.Embed.from_dict(User.New_registered_user_embed(User.I_M_Thou_embed(Arcana), Arcana))
         await ctx.channel.send('<@!' + str(ctx.author.id) + '>', embed=IMThou)

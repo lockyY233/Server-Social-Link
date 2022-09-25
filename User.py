@@ -6,7 +6,7 @@ import random
 from data.Persona_Data import ARCANA
 import Embed_Library
 from data import sql_utils
-
+import SlinkBot
 
 class user:
 
@@ -60,28 +60,16 @@ def random_arca():
             if arcana_lst[x] == arcana:
                 return x
 
-    
-
 def RESET_USER_DB(ctx):
     # remove all users with the same guild id
     sql_utils.sql_reset(ctx.guild_id)
-'''
-def is_user_exist(ctx):
-    # reference in main.py. check if user exist in select guild
-    with open('data/USER.json', 'r') as f:
-        USER = json.load(f)
-        for User in USER['Users']:
-            return is_user_guild_exist(ctx, User)
-'''
 
-def is_user_guild_exist(ctx):
+def is_user_guild_exist(user_id, guild_id):
     # fetch user info in db
-    condition = 'user_id = {0} AND guild_id = {1}'.format(ctx.author.id, ctx.guild_id)
-    if not sql_utils.get_data('*','User', condition) == []:
+    if get_UserID(user_id, guild_id) != None:
         return True
     else:
         return False
-
 
 def user_register(user):# take in a user object, create a user
     user_info = {'name': user.Name,
@@ -96,17 +84,34 @@ def user_register(user):# take in a user object, create a user
 def new_user(ctx):
     Arcana = random_arca()
     new_user = user(str(ctx.author), ctx.author.id, ctx.guild_id, Arcana)
+    if ctx.author.voice != None:
+        # user already in vc
+        member_list = ctx.author.voice.channel.members
+        SlinkBot.if_emtpy(member_list, ctx.author.voice)
     user_register(new_user)
 
-def get_arcana(ctx): 
-    condition = 'user_id = {0} AND guild_id = {1}'.format(ctx.author.id, ctx.guild_id)
-    arcana = sql_utils.get_data('arcana','User', condition)
-    # arcana will be return as list
-    if not arcana == []:
-        arcana = str(arcana)
-        arcana = arcana.replace("[('", '')
-        arcana = arcana.replace("',)]", '')
-        return arcana
+def get_arcana(author_id=0, guild_id=0, UserID = None): 
+    # similar to get_UserID. Not recommand to use get_UserID to aquire UserID= if not neccessary
+    if author_id != 0 and guild_id != 0:
+        condition = f'user_id = {author_id} AND guild_id = {guild_id}'
+        arcana = sql_utils.get_data('arcana','User', condition)
+        # arcana will be return as list
+    elif UserID != None:
+        condition = f'UserID = {UserID}'
+        arcana = sql_utils.get_data('arcana','User', condition)
+    else:
+        raise Exception("Wrong argument presented. Must either have both author id and guild id or have UserID present")
+
+    if arcana != []:
+        return arcana[0][0]
+    else: 
+        return None
+
+def get_UserID(user_id, guild_id):
+    condition = f'user_id = {user_id} AND guild_id = {guild_id}'
+    UserID = sql_utils.get_data("UserID", 'User', condition)
+    if UserID != []:
+        return UserID[0][0]
     else: 
         return None
 

@@ -27,6 +27,20 @@ def sql_register(user_info):
     conn.commit()
     conn.close()
     
+def set_level_xp(UserID, arcana, lvl):
+    lvl_querry = f"""UPDATE Arcana_level
+                    SET {arcana}={lvl}
+                    WHERE UserID = {UserID}"""
+    xp_querry = f"""UPDATE ARcana_xp
+                    SET {arcana}=0
+                    WHERE UserID{UserID}
+                    """
+    conn = sqlite3.connect('data/USER.sqlite')
+    curs = conn.cursor()
+    curs.execute(lvl_querry)
+    curs.execute(xp_querry)
+    conn.commit()
+    conn.close()
 
 def get_data(value, table,  condition):
     querry = f"SELECT {value} from {table} WHERE {condition}"
