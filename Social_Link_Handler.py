@@ -96,7 +96,7 @@ async def level_coro(self, UserID, time_need):
 async def lvling_loop(self, UserID, time_need, scheduler):
     # handling the level coroutine
     while True:
-        task = await scheduler.spawn(self.level_coro(self, UserID, time_need))
+        task = await scheduler.spawn(level_coro(self, UserID, time_need))
         await task.wait()
         # break loop
         if self.is_destroy == True:

@@ -8,7 +8,7 @@
 # Used API: Pycord 
 #
 # debug guild id: 805739900850536478
-# external library: pycord, aiojobs
+# other external library: pycord, aiojobs, jupyter-spaces
 
 import discord
 from discord.ext.commands import has_permissions, CheckFailure

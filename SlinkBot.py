@@ -7,13 +7,13 @@ import Embed_Library
 import User
 
 vc_time_dict = {}
+scheduler = None
 # record the vc time recorder for every member who join the vc
 
 # main class for bot
 class SlinkBot(discord.Bot):
     def __init__(self, *args, **kwargs):
         super(SlinkBot, self).__init__(*args, **kwargs)
-        self.scheduler = None
 
     async def on_ready(self):
         self.scheduler = await aiojobs.create_scheduler(limit=None)
@@ -26,6 +26,13 @@ class SlinkBot(discord.Bot):
         await VChandler(member, before, after, self.scheduler)# handle when user join/leave vc
         print(f"{Social_Link_Handler.CONN_LINE_DICT=}")
         print(f"{vc_time_dict=}")
+
+    async def on_reaction_add(self, reaction, user):
+        if self.user == user:
+            return
+
+        
+        pass
 
 async def if_emtpy(member_list, after, scheduler):
     # handle the case if the CONN_LINE_DICT is empty due to restart
