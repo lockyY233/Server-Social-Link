@@ -9,7 +9,7 @@ from data import sql_utils
 import SlinkBot
 
 class user:
-
+    # user object created only for register purpose
     def __init__(self, Name, Userid, Guild_id, Arcana):
         self.Name = Name
         self.Userid = Userid

@@ -1,12 +1,12 @@
 import discord
 import Social_Link_Handler
+from Social_Link_Handler import CONN_LINE_DICT, PLAYER_DICT
 import time
 import aiojobs
 
 import Embed_Library
 import User
 
-vc_time_dict = {}
 scheduler = None
 # record the vc time recorder for every member who join the vc
 
@@ -16,91 +16,101 @@ class SlinkBot(discord.Bot):
         super(SlinkBot, self).__init__(*args, **kwargs)
 
     async def on_ready(self):
-        self.scheduler = await aiojobs.create_scheduler(limit=None)
+        global scheduler
+        scheduler = await aiojobs.create_scheduler(limit=None)
         print(f"{self.user} is ready and online!")
 
     async def on_message(self, message):
         print("Message sent from {0.author}: {0.content}".format(message))
 
     async def on_voice_state_update(self, member, before, after):
-        await VChandler(member, before, after, self.scheduler)# handle when user join/leave vc
-        print(f"{Social_Link_Handler.CONN_LINE_DICT=}")
-        print(f"{vc_time_dict=}")
+        await VChandler(member, before, after, scheduler)# handle when user join/leave vc
+        print(f"{CONN_LINE_DICT=}")
+        print(f"{PLAYER_DICT=}")
 
     async def on_reaction_add(self, reaction, user):
         if self.user == user:
             return
-
+        # on addreaction
         
         pass
 
-async def if_emtpy(member_list, after, scheduler):
+async def if_emtpy(member_list, after):
     # handle the case if the CONN_LINE_DICT is empty due to restart
     print("bot probably restarted")
     UserID = 0
+    for mem in member_list:
+        UserID = User.get_UserID(mem.id, after.channel.guild.id)
+        new_player_dict(mem, UserID)
     for mem in range(len(member_list)-1):
         UserID = User.get_UserID(member_list[0].id, after.channel.guild.id)
+        print(f"{UserID=}")
         if UserID == None:
             member_list.pop(0)
             continue
         else:
-            await join_vc_handler(member_list, member_list[0], after, UserID, scheduler)
+            global scheduler
+            new_player = PLAYER_DICT[UserID]
+            await join_vc_handler(member_list, member_list[0], after, UserID, scheduler, new_player)
             member_list.pop(0)
 
 async def VChandler(member, before, after, scheduler):
     UserID = None
+
     if Social_Link_Handler.is_join_vc(before, after):
         UserID = User.get_UserID(member.id, after.channel.guild.id)
     elif not Social_Link_Handler.is_join_vc(before, after):
         UserID = User.get_UserID(member.id, before.channel.guild.id)
-    print(UserID)
-    if UserID == None:
-            return
-    member_list = []
+    #print(f"{UserID=}")
 
+    if UserID == None:
+        return # if user is not registered
+    
+    member_list = []# member list for if_empty()
     if Social_Link_Handler.is_join_vc(before, after):
         # if join vc
-        member_list = member.voice.channel.members
-        calc = Social_Link_Handler.vc_time_calc(member)
-        calc.set_join_time()
-        vc_time_dict[UserID] = calc # record calc with the userid as the key
-        print(f"{str(member)} join the vc at {calc.get_join_time()}")
-        await join_vc_handler(member_list, member, after, UserID, scheduler)
+        new_player = new_player_dict(member, UserID)
+        await join_vc_handler(member_list, member, after, UserID, scheduler, new_player)
 
     elif Social_Link_Handler.is_join_vc(before, after) == False:
         # if leave vc
         member_list = before.channel.members
         try:
-            if vc_time_dict[UserID] != None:
-                vc_time_dict[UserID].set_leave_time()
-                print(f"{str(member)} left the vc at {vc_time_dict[UserID].get_join_time()}")
-                print(f"total time in vc: {vc_time_dict[UserID].get_total_vc_time()}s")
-                vc_time_dict.pop(UserID)
+            if PLAYER_DICT[UserID] != None:
+                PLAYER_DICT[UserID].set_leave_time()
+                print(f"{str(member)} left the vc at {PLAYER_DICT[UserID].get_join_time()}")
+                print(f"total time in vc: {PLAYER_DICT[UserID].get_total_vc_time()}s")
+                PLAYER_DICT.pop(UserID)
         except:
-            print("calc is not defined probably due to bot restart")
+            # if restart, PLAYER_DICT will be empty
+            print("player is not defined probably due to bot restart")
         leave_vc_handler(member_list, before, member, UserID)
     elif before.channel != None and after.channel != None:
         # other action that trigger update
-        #print(get_guild_in_Connlinedict(after.channel.guild.id))
         if get_guild_in_Connlinedict(after.channel.guild.id) == None:
+            #print(f"{member.voice.channel.members=}")
             member_list = member.voice.channel.members
-            await if_emtpy(member_list, after, scheduler)
+            await if_emtpy(member_list, after)
 
-async def join_vc_handler(member_list, member, after, UserID, scheduler):
+async def join_vc_handler(member_list, member, after, UserID, scheduler, new_player):
+    # transfer information to player object
+    
     if len(member_list) <= 1:
         return
+
     for target in member_list:
         #print(f"{member=}, {target=}")
         if target != member and User.is_user_guild_exist(target.id, after.channel.guild.id):
             TargetID = User.get_UserID(target.id, after.channel.guild.id)
             if TargetID == None:
                 continue
-            conn = Social_Link_Handler.conn_line(member, target, after.channel)
+            conn = Social_Link_Handler.conn_line(new_player, PLAYER_DICT[TargetID], after.channel)
             await conn.sleep_til_nxt_lvl(scheduler)
             key = (UserID, TargetID)
             write_conn_line_dict(after.channel.guild.id, key, conn) # record element into a dictionary
 
 def leave_vc_handler(member_list, before, member, UserID):
+    # Delete conn_line obj from CONN_LINE_DICT by predicting key 
     key_to_del = []
     for target in member_list:
         guild_id = before.channel.guild.id
@@ -110,24 +120,31 @@ def leave_vc_handler(member_list, before, member, UserID):
             key_to_del.append(key)
             key = (UserID, TargetID)
             key_to_del.append(key)
-            print(f'{key_to_del=}')
+            # predict the key in order to look up in the dictionary
     for key in key_to_del:
-        if key in list(Social_Link_Handler.CONN_LINE_DICT[guild_id].keys()):
-            conn = Social_Link_Handler.CONN_LINE_DICT[guild_id][key]
-            conn.is_destroy = False # break loop for leveling and record lvl and xp
-            conn.on_destroy()
-            Social_Link_Handler.CONN_LINE_DICT[guild_id].pop(key) # delete element from dict
+        if key in list(CONN_LINE_DICT[guild_id].keys()):
+            conn = CONN_LINE_DICT[guild_id][key]
+            conn.on_destroy(UserID)
+            CONN_LINE_DICT[guild_id].pop(key) # delete element from dict
 
 def write_conn_line_dict(guild_id, key, conn):
     try:
-        Social_Link_Handler.CONN_LINE_DICT[guild_id][key] = conn
+        CONN_LINE_DICT[guild_id][key] = conn
     except Exception as error:
         if isinstance(error, KeyError):
-            Social_Link_Handler.CONN_LINE_DICT[guild_id] = {key: conn}
+            CONN_LINE_DICT[guild_id] = {key: conn}
+
+def new_player_dict(member, UserID) -> Social_Link_Handler.player:
+    # create a new_player base on UserID and member obj
+    new_player = Social_Link_Handler.player(member, UserID)
+    new_player.set_join_time()
+    PLAYER_DICT[UserID] = new_player
+    print(f"{str(member)} join the vc at {new_player.get_join_time()}")
+    return new_player
 
 def get_guild_in_Connlinedict(guild_id):
     try:
-        return Social_Link_Handler.CONN_LINE_DICT[guild_id]
+        return CONN_LINE_DICT[guild_id]
     except Exception as error:
         if isinstance(error, KeyError):
             print(f"error finding guild_id, probably due to bot restart")

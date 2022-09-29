@@ -6,7 +6,6 @@ from data import sql_utils
 def xp_need(level, current_xp = 0):
     # return the xp needed to reach the next level
     # the limit will be 300xp per level.
-    print(f"{level=}")
     y = 300/(1+math.exp(-0.7*(7/100*level-6)))
     y = round(y)
     return y - current_xp
