@@ -19,6 +19,6 @@ def get_xp(arcana, UserID):
     xp = sql_utils.get_data(arcana, 'Arcana_xp', f'UserID = {UserID}')
     return xp[0][0]
 
-def set_arcana_level(UserID, arcana, level):
-    print(f"{UserID} has leveled up his/her bond with {arcana} to {level}")
-    sql_utils.set_level_xp(UserID, arcana, level)
+def set_arcana_level(UserID, arcana, level, xp):
+    print(f"{UserID} has wriiten on {arcana} to {level} with {xp=}")
+    sql_utils.set_level_xp(UserID, arcana, level, xp)

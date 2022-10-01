@@ -8,18 +8,27 @@
 # Used API: Pycord 
 #
 # debug guild id: 805739900850536478
-# other external library: pycord, aiojobs, jupyter-spaces
+# other external library: 
+# - pycord, 
+# - aiojobs, 
+# - jupyter-spaces, 
+# - dill, 
+# - pysimplegui
 
 import discord
 from discord.ext.commands import has_permissions, CheckFailure
 
 from SlinkBot import SlinkBot
+from SlinkBot import *
+import gui
 import Embed_Library
 import User
 from data import Persona_Data
 
 import os # default module
 from dotenv import load_dotenv
+import asyncio
+import aiohttp
 
 load_dotenv() # load all the variables from the env file
 def set_intent(intent):
@@ -86,10 +95,20 @@ async def persona(ctx):
 async def persona(ctx):
     dungeon_menu = discord.Embed.from_dict(Embed_Library.Dungeon_embed)
     await ctx.respond(embed=dungeon_menu)
+
 #------------------------------------------------------------------------------------#
 
 ############# run the bot with the token #############
-bot.run(os.getenv('TOKEN'))
+def main():
+    loop = asyncio.get_event_loop()
+    try:
+        loop.run_until_complete(bot.start(os.getenv('TOKEN')))
+    except aiohttp.client_exceptions.ClientConnectorError as ConnectError:
+        # implement with gui
+        gui.print_error(ConnectError)
+        return
+if __name__ == '__main__':
+    main()
 ######################################################
 
 

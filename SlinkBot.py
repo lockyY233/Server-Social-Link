@@ -1,23 +1,43 @@
 import discord
 import Social_Link_Handler
 from Social_Link_Handler import CONN_LINE_DICT, PLAYER_DICT
-import time
+import json
 import aiojobs
+import dill as pickle
 
 import Embed_Library
 import User
+import gui
+from gui import debug_print
+import threading
 
 scheduler = None
+window_lib = {}
 # record the vc time recorder for every member who join the vc
 
 # main class for bot
 class SlinkBot(discord.Bot):
     def __init__(self, *args, **kwargs):
         super(SlinkBot, self).__init__(*args, **kwargs)
+        self.event = None # event for the control pannel window
 
     async def on_ready(self):
+        # set global scheduler for all jobs
         global scheduler
         scheduler = await aiojobs.create_scheduler(limit=None)
+        # init windows for control pannel
+        window = gui.init_window()
+        global window_job
+        window_job = await scheduler.spawn(gui.window_loop(self, window, self.event))
+        #window_lib["ControlPannel"] = window_job
+        # load SAVE file from shutdown
+        try:
+            with open("data/SAVE", "rb") as f:
+                SAVE = pickle.load(f)
+                print(f"{SAVE=}")
+        except Exception as error:
+            print(f"{error}")
+        debug_print(f"{self.user} is ready and online!")
         print(f"{self.user} is ready and online!")
 
     async def on_message(self, message):
@@ -25,31 +45,53 @@ class SlinkBot(discord.Bot):
 
     async def on_voice_state_update(self, member, before, after):
         await VChandler(member, before, after, scheduler)# handle when user join/leave vc
-        print(f"{CONN_LINE_DICT=}")
-        print(f"{PLAYER_DICT=}")
+        debug_print(f"{CONN_LINE_DICT=}")
+        debug_print(f"{PLAYER_DICT=}")
 
     async def on_reaction_add(self, reaction, user):
         if self.user == user:
             return
         # on addreaction
-        
         pass
+
+    async def on_shutdown(self):
+        # backup all crucial information before shutdown
+        # write using pickle
+        # considering signing with hmac in the future
+        # -------------------------------------
+        # closing all task before shutdown
+        for guild in CONN_LINE_DICT.copy():
+            # for every conn_line obj in the dictionary
+            # close conn_line using on_destroy,
+            for conn in CONN_LINE_DICT[guild].copy():
+                await CONN_LINE_DICT[guild][conn].on_destroy(conn[0])
+                CONN_LINE_DICT[guild][conn] = None 
+        for player in PLAYER_DICT:
+            # unbind the member subclass, can rebind it using its id lookup
+            PLAYER_DICT[player].member = None
+        print(f"closing: {CONN_LINE_DICT=}")
+        print(f"closing: {PLAYER_DICT=}")
+        # dumping all dictionary into a pickle file before shutdown
+        with open("data/SAVE", "wb") as f: 
+            dict = {"CONN_LINE_DICT": CONN_LINE_DICT, "PLAYER_DICT": PLAYER_DICT}
+            pickle.dump(dict, f)
 
 async def if_emtpy(member_list, after):
     # handle the case if the CONN_LINE_DICT is empty due to restart
     print("bot probably restarted")
-    UserID = 0
     for mem in member_list:
         UserID = User.get_UserID(mem.id, after.channel.guild.id)
+        if UserID == None:
+            continue
         new_player_dict(mem, UserID)
     for mem in range(len(member_list)-1):
         UserID = User.get_UserID(member_list[0].id, after.channel.guild.id)
-        print(f"{UserID=}")
+        #print(f"{UserID=}")
         if UserID == None:
             member_list.pop(0)
             continue
         else:
-            global scheduler
+            #global scheduler
             new_player = PLAYER_DICT[UserID]
             await join_vc_handler(member_list, member_list[0], after, UserID, scheduler, new_player)
             member_list.pop(0)
@@ -61,7 +103,7 @@ async def VChandler(member, before, after, scheduler):
         UserID = User.get_UserID(member.id, after.channel.guild.id)
     elif not Social_Link_Handler.is_join_vc(before, after):
         UserID = User.get_UserID(member.id, before.channel.guild.id)
-    #print(f"{UserID=}")
+    print(f"VChandler: {UserID=}")
 
     if UserID == None:
         return # if user is not registered
@@ -75,6 +117,7 @@ async def VChandler(member, before, after, scheduler):
     elif Social_Link_Handler.is_join_vc(before, after) == False:
         # if leave vc
         member_list = before.channel.members
+        await leave_vc_handler(member_list, before, member, UserID)
         try:
             if PLAYER_DICT[UserID] != None:
                 PLAYER_DICT[UserID].set_leave_time()
@@ -84,7 +127,6 @@ async def VChandler(member, before, after, scheduler):
         except:
             # if restart, PLAYER_DICT will be empty
             print("player is not defined probably due to bot restart")
-        leave_vc_handler(member_list, before, member, UserID)
     elif before.channel != None and after.channel != None:
         # other action that trigger update
         if get_guild_in_Connlinedict(after.channel.guild.id) == None:
@@ -97,7 +139,7 @@ async def join_vc_handler(member_list, member, after, UserID, scheduler, new_pla
     
     if len(member_list) <= 1:
         return
-
+    
     for target in member_list:
         #print(f"{member=}, {target=}")
         if target != member and User.is_user_guild_exist(target.id, after.channel.guild.id):
@@ -109,7 +151,7 @@ async def join_vc_handler(member_list, member, after, UserID, scheduler, new_pla
             key = (UserID, TargetID)
             write_conn_line_dict(after.channel.guild.id, key, conn) # record element into a dictionary
 
-def leave_vc_handler(member_list, before, member, UserID):
+async def leave_vc_handler(member_list, before, member, UserID):
     # Delete conn_line obj from CONN_LINE_DICT by predicting key 
     key_to_del = []
     for target in member_list:
@@ -121,10 +163,12 @@ def leave_vc_handler(member_list, before, member, UserID):
             key = (UserID, TargetID)
             key_to_del.append(key)
             # predict the key in order to look up in the dictionary
+        print(f"{key_to_del=}")
     for key in key_to_del:
         if key in list(CONN_LINE_DICT[guild_id].keys()):
+            print(f"{key} is getting destroyed")
             conn = CONN_LINE_DICT[guild_id][key]
-            conn.on_destroy(UserID)
+            await conn.on_destroy(UserID)
             CONN_LINE_DICT[guild_id].pop(key) # delete element from dict
 
 def write_conn_line_dict(guild_id, key, conn):

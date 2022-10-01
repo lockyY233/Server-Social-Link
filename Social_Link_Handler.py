@@ -6,6 +6,7 @@ import discord
 
 import leveling
 import User
+from gui import debug_print
 
 #-- Dictionary define
 CONN_LINE_DICT = {
@@ -39,30 +40,49 @@ class player:
         self.member = member
         # instead inheit member, take member as part of attribute
         self.UserID = UserID
-        self.job = None
+        self.job = {}
         self.arcana = User.get_arcana(UserID=UserID)
-        tup_player = (self.arcana, self.UserID)
-        self.lvl = leveling.get_level(*tup_player)
-        self.xp = leveling.get_xp(*tup_player)
+        self.Slink_lvl ={}
+        """
+        {
+            "arcana name": [13, 0] <-- [0] is level, [1] is xp
+        }
+        """
 
     def __repr__(self) -> str:
         attrs = [
             ("UserID", self.UserID),
             ("arcana", self.arcana),
-            ("level", self.lvl),
-            ("xp", self.xp)
+            ("runningJobs", self.job),
+            ("Slink_lvl", self.Slink_lvl)
         ]
         inner = " ".join("%s=%r" % t for t in attrs)
         return f"<{self.__class__.__name__} {inner}>"
-        
-    def setjob(self, job):
-        print("job is set")
-        self.job = job
+    
+    def init_level(self, targetArcana):
+        # targetArcana is a string
+        # request user arcana's lvl&xp from target player
+        tup_player = (targetArcana, self.UserID)
+        lvl = leveling.get_level(*tup_player)
+        xp = leveling.get_xp(*tup_player)
+        self.Slink_lvl[targetArcana] = [lvl, xp]
+    
+    def del_level(self, targetArcana, xp):
+        # called when target destroyed
+        self.Slink_lvl[targetArcana][1] += xp
+        leveling.set_arcana_level(self.UserID, targetArcana, self.Slink_lvl[targetArcana][0], self.Slink_lvl[targetArcana][1])
+        self.Slink_lvl.pop(targetArcana)
+
+    def setjob(self, targetArcana, job):
+        self.job[targetArcana] = job
+        #print(f"job is set, {job}")
         self.is_left = True
 
-    async def closejob(self):
+    async def closejob(self, targetArcana):
         # force closing the task/job
-        await self.job.close()
+        debug_print(f"{self.job[targetArcana]} has closed")
+        await self.job[targetArcana].close()
+        self.job.pop(targetArcana)
     
     def set_join_time(self):
         self.join_time = round(time.time())
@@ -80,9 +100,9 @@ class player:
         return self.leave_time - self.join_time
     
     def level_up(self, TargetArcana):
-        self.lvl += 1
-        self.xp = 0
-        print(f"{self} has forged the bond with {TargetArcana} to {self.lvl}")
+        self.Slink_lvl[TargetArcana][0] += 1
+        self.Slink_lvl[TargetArcana][1] = 0
+        debug_print(f"{self} has forged the bond with {TargetArcana} to {self.Slink_lvl[TargetArcana][0]}")
         #leveling.set_arcana_level(self.UserID, TargetArcana, (self.lvl+1))
 
 class conn_line:
@@ -92,44 +112,47 @@ class conn_line:
         self.player1 = player1
         self.player2 = player2
         self.start_time = time.time()
-        self.channel = channel
         # start_time records when obj created
+        self.channel = channel
 
-    def on_destroy(self, UserID):
+        self.player1.init_level(player2.arcana)
+        self.player2.init_level(player1.arcana)
+
+    async def on_destroy(self, UserID):
         PLAYER_DICT[UserID].leave_time = time.time()
         time_gained = PLAYER_DICT[UserID].leave_time - self.start_time
-        xp_gained = xp_gained(time_gained)
+        xp = xp_gained(time_gained)
+        self.player2.del_level(self.player1.arcana, xp)
+        self.player1.del_level(self.player2.arcana, xp)
+        await self.player1.closejob(self.player2.arcana)
+        await self.player2.closejob(self.player1.arcana)
         # only call this when someone dc
-        pass
 
     async def sleep_til_nxt_lvl(self, scheduler):
         #initialize the leveling loop
         job1 = await scheduler.spawn(lvling_loop(self.player1, self.player2, scheduler))
         job2 = await scheduler.spawn(lvling_loop(self.player2, self.player1, scheduler))
-        self.player1.setjob(job1)
-        self.player2.setjob(job2)
+        self.player1.setjob(self.player2.arcana, job1)
+        self.player2.setjob(self.player1.arcana, job2)
 
 async def level_coro(player, time_need):
     await asyncio.sleep(time_need)
-    print(f"{player} done sleeping for {time_need}s")
+    debug_print(f"{player} done sleeping for {time_need}s")
 
 
 async def lvling_loop(player, target, scheduler):
     # handling the level coroutine
     while True:
-        xp1_need = leveling.xp_need(player.lvl, player.xp)
+        xp1_need = leveling.xp_need(player.Slink_lvl[target.arcana][0], player.Slink_lvl[target.arcana][1])
         timeneed = time_need(xp1_need)
-        print(f"{player}: {timeneed=}")
+        debug_print(f"{player}: {timeneed=}")
         task = await scheduler.spawn(level_coro(player, timeneed))
         await task.wait()
         player.level_up(target.arcana)
         # break loop
         if not player.is_left:
-            print(f"{player}'s leveling has stopped")
+            debug_print(f"{player}'s leveling has stopped")
             break
-
-def lvl_up(UserID, lvl, arcana):
-    leveling.set_arcana_level(UserID, arcana, lvl)
 
 # check if user is join/leave vc (but not muted/deafen)
 def is_join_vc(before, after):
@@ -142,12 +165,12 @@ def is_join_vc(before, after):
 def time_need(xp_need):
     # calculate the time needed for the member to level up
     # return seconds needed to level up
-    return xp_need # default 60*2*xp_need
-    # current speed 1 second/xp
+    return 60*2*xp_need # default 60*2*xp_need
+    # current speed 2 min/xp
 
 def xp_gained(time_gained):
     # reverse of the time_need function
-    return time_gained # default time_gained/(60*2)
+    return round(time_gained/(60*2)) # default time_gained/(60*2)
 
 
 # create a new conn_line for newly joined user
