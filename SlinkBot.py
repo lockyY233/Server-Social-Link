@@ -30,13 +30,7 @@ class SlinkBot(discord.Bot):
         global window_job
         window_job = await scheduler.spawn(gui.window_loop(self, window, self.event))
         #window_lib["ControlPannel"] = window_job
-        # load SAVE file from shutdown
-        try:
-            with open("data/SAVE", "rb") as f:
-                SAVE = pickle.load(f)
-                print(f"{SAVE=}")
-        except Exception as error:
-            print(f"{error}")
+        await refresh_dict(self)
         debug_print(f"{self.user} is ready and online!")
         print(f"{self.user} is ready and online!")
 
@@ -76,16 +70,28 @@ class SlinkBot(discord.Bot):
             dict = {"CONN_LINE_DICT": CONN_LINE_DICT, "PLAYER_DICT": PLAYER_DICT}
             pickle.dump(dict, f)
 
+async def refresh_dict(bot):
+    for guild in bot.guilds:
+            for voiceChannel in guild.voice_channels:
+                if voiceChannel.members == []:
+                    # pass if voice channel has no members
+                    continue
+                member_list = voiceChannel.members
+                await if_emtpy(member_list, voiceChannel)
+
 async def if_emtpy(member_list, after):
+    guild = after.guild
     # handle the case if the CONN_LINE_DICT is empty due to restart
-    print("bot probably restarted")
+    if after.__class__.__name__ == 'VoiceState':
+        guild = after.channel.guild.id
+    print(f"{member_list=}")
     for mem in member_list:
-        UserID = User.get_UserID(mem.id, after.channel.guild.id)
+        UserID = User.get_UserID(mem.id, guild.id)
         if UserID == None:
             continue
         new_player_dict(mem, UserID)
     for mem in range(len(member_list)-1):
-        UserID = User.get_UserID(member_list[0].id, after.channel.guild.id)
+        UserID = User.get_UserID(member_list[0].id, guild.id)
         #print(f"{UserID=}")
         if UserID == None:
             member_list.pop(0)
@@ -136,20 +142,26 @@ async def VChandler(member, before, after, scheduler):
 
 async def join_vc_handler(member_list, member, after, UserID, scheduler, new_player):
     # transfer information to player object
-    
+    guild = after.guild
+    channel = after
+    if after.__class__.__name__ == 'VoiceState':
+        guild = after.channel.guild.id
+        channel = after.channel
+
     if len(member_list) <= 1:
+        # ignore if there is only one person inside vc
         return
     
     for target in member_list:
         #print(f"{member=}, {target=}")
-        if target != member and User.is_user_guild_exist(target.id, after.channel.guild.id):
-            TargetID = User.get_UserID(target.id, after.channel.guild.id)
+        if target != member and User.is_user_guild_exist(target.id, guild.id):
+            TargetID = User.get_UserID(target.id, guild.id)
             if TargetID == None:
                 continue
-            conn = Social_Link_Handler.conn_line(new_player, PLAYER_DICT[TargetID], after.channel)
+            conn = Social_Link_Handler.conn_line(new_player, PLAYER_DICT[TargetID], channel)
             await conn.sleep_til_nxt_lvl(scheduler)
             key = (UserID, TargetID)
-            write_conn_line_dict(after.channel.guild.id, key, conn) # record element into a dictionary
+            write_conn_line_dict(guild.id, key, conn) # record element into a dictionary
 
 async def leave_vc_handler(member_list, before, member, UserID):
     # Delete conn_line obj from CONN_LINE_DICT by predicting key 

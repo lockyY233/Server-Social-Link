@@ -81,13 +81,13 @@ def user_register(user):# take in a user object, create a user
     print(user_info)
     sql_utils.sql_register(user_info) 
 
-def new_user(ctx):
+def new_user(interaction):
     Arcana = random_arca()
-    new_user = user(str(ctx.author), ctx.author.id, ctx.guild_id, Arcana)
-    if ctx.author.voice != None:
+    new_user = user(str(interaction.user), interaction.user.id, interaction.guild_id, Arcana)
+    if interaction.user.voice != None:
         # user already in vc
-        member_list = ctx.author.voice.channel.members
-        SlinkBot.if_emtpy(member_list, ctx.author.voice)
+        member_list = interaction.user.voice.channel.members
+        SlinkBot.if_emtpy(member_list, interaction.user.voice)
     user_register(new_user)
 
 def get_arcana(author_id=0, guild_id=0, UserID = None): 

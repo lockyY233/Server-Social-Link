@@ -48,6 +48,13 @@ class player:
             "arcana name": [13, 0] <-- [0] is level, [1] is xp
         }
         """
+    def __str__(self) -> str:
+        attrs = [
+            ("UserID", self.UserID),
+            ("arcana", self.arcana)
+        ]
+        inner = " ".join("%s=%r" % t for t in attrs)
+        return f"<{self.__class__.__name__} {inner}>"
 
     def __repr__(self) -> str:
         attrs = [
@@ -117,6 +124,24 @@ class conn_line:
 
         self.player1.init_level(player2.arcana)
         self.player2.init_level(player1.arcana)
+
+    def __str__(self) -> str:
+        attrs = [
+            ("Player1", self.player1.UserID),
+            ("Player2", self.player2.UserID),
+            ("channel", self.channel.name)
+        ]
+        inner = " ".join("%s=%r" % t for t in attrs)
+        return f"<{self.__class__.__name__} {inner}>"
+
+    def __repr__(self):
+        attrs = [
+            ("Player1", self.player1),
+            ("Player2", self.player2),
+            ("channel", self.channel)
+        ]
+        inner = " ".join("%s=%r" % t for t in attrs)
+        return f"<{self.__class__.__name__} {inner}>"
 
     async def on_destroy(self, UserID):
         PLAYER_DICT[UserID].leave_time = time.time()

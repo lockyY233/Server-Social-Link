@@ -24,6 +24,7 @@ import gui
 import Embed_Library
 import User
 from data import Persona_Data
+import discordUI
 
 import os # default module
 from dotenv import load_dotenv
@@ -36,6 +37,7 @@ def set_intent(intent):
     intent.message_content = True
     intent.voice_states = True
     intent.members = True
+    intent.guilds = True
 
 intent = discord.Intents.all()
 set_intent(intent)
@@ -54,21 +56,18 @@ async def velvetRoom (ctx):
 @bot.slash_command(name = "register", description = "sign up to join this server game with your friends!")
 async def register(ctx):
     if not User.is_user_guild_exist(ctx.author.id, ctx.guild_id):
-        await ctx.respond("**Warning: you will be randomly assign an arcana**")
-        User.new_user(ctx)
-        Arcana = User.get_arcana(author_id = ctx.author.id, guild_id = ctx.guild_id)
-        print("Arcana: " + str(Arcana))
-        IMThou = discord.Embed.from_dict(User.New_registered_user_embed(User.I_M_Thou_embed(Arcana), Arcana))
-        await ctx.channel.send('<@!' + str(ctx.author.id) + '>', embed=IMThou)
+        await ctx.respond("**Warning**: Once you register, you will be randomly assign an Arcana.\n**You will not be allowed to change your Arcana!**", view=discordUI.register_button())
     else:
         await ctx.respond("You have already registered! Please visit Velvet Room for more info!")
 
-# ------ Reset Command ------
+# ------ Reset Command Group------
+#reset = bot.create_group(name="reset")
 @bot.slash_command(name = "reset", description = "Are You Worthy?")
 @has_permissions(administrator = True)
-async def reset_user(ctx):
-    User.RESET_USER_DB(ctx)
-    await ctx.respond(embed = discord.Embed.from_dict({'description': 'Wipe Successfull!', 'image':{'url':'https://c.tenor.com/TG5OF7UkLasAAAAC/thanos-infinity.gif'}}))
+#@reset.command(name="all")
+async def reset_user(ctx, option: discord.Option(choices=['all', 'user_level'])):
+    print(f"reset! {ctx=}, {option=}")
+    await ctx.response.send_message("**WARNING** The action you are about to conduct is **IRREVERSIBLE**\n Are you sure to continue?", view=discordUI.reset_button())
         
 @reset_user.error
 async def reset_user_error(ctx, error):
