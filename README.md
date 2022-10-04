@@ -1,6 +1,7 @@
 # Server-Social-Link
  
 For development only:
+**if you want to know how this bot is structured, plase start with the JupyterNB folder and try to read through  coroutine.ipynb and PycordBasics.ipynb**
 
 **if you want to know how this bot is structured, plase start with the JupyterNB folder and try to read through  coroutine.ipynb and PycordBasics.ipynb**
 
