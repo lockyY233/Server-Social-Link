@@ -47,13 +47,19 @@ async def event_handler(event, window):
     if event == "PLAYER_DICT":
         from Social_Link_Handler import PLAYER_DICT
         window['-DEBUG OUTPUT-'].update(pretty_PLAYER_DICT(PLAYER_DICT))
+        debug_print(pretty_PLAYER_DICT(PLAYER_DICT))
     elif event == "CONN_LINE_DICT":
         from Social_Link_Handler import CONN_LINE_DICT
         window['-DEBUG OUTPUT-'].update(pretty_CONN_DICT(CONN_LINE_DICT))
+        debug_print(pretty_CONN_DICT(CONN_LINE_DICT))
     elif event == "Refresh Dictionaries":
-        import SlinkBot
+        from SlinkBot import refresh_dict
         from Main import bot
-        await SlinkBot.refresh_dict(bot)
+        from Social_Link_Handler import PLAYER_DICT
+        from Social_Link_Handler import CONN_LINE_DICT
+        PLAYER_DICT = {}
+        CONN_LINE_DICT = {}
+        await refresh_dict(bot)
 def pretty_PLAYER_DICT(dict):
     c_dict = {}
     for player in dict:

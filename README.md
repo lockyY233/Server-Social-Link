@@ -2,16 +2,15 @@
  
 For development only:
 
-to do list:
+**if you want to know how this bot is structured, plase start with the JupyterNB folder and try to read through  coroutine.ipynb and PycordBasics.ipynb**
 
-- implement I am thou embed, add new fields hinting users what to do next after registering an arcana
+to do:
+- change vc handler into guild base instead of voiceChannel or voiceSate base
 
-- switch out USER.json into sql database for bigger storage
+- implement ui for /slink command
 
-- create a library for all personas existed
+- fix issue where writing xp will write to everyone
 
-- add /slink command to calculate slink
+- fix issue where player switching vc will not break conn_line object
 
-- detect conversation (have a buffer recording all messages)
-
-- detect voice chat
+- clean up redundent code inside SlinkBot.py and Social_Link_Handler.py

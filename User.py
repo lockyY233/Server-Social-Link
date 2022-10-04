@@ -1,5 +1,4 @@
-# Managing users or players, handling User.json
-
+import discord
 import json
 import random
 
@@ -61,8 +60,12 @@ def random_arca():
                 return x
 
 def RESET_USER_DB(ctx):
-    # remove all users with the same guild id
+    '''remove all users with the same guild id'''
     sql_utils.sql_reset(ctx.guild_id)
+
+def RESET_USER_LEVEL(ctx):
+    '''remove all users level within the same guild'''
+    sql_utils.sql_reset_level(ctx.guild_id)
 
 def is_user_guild_exist(user_id, guild_id):
     # fetch user info in db
@@ -81,13 +84,15 @@ def user_register(user):# take in a user object, create a user
     print(user_info)
     sql_utils.sql_register(user_info) 
 
-def new_user(interaction):
+async def new_user(interaction: discord.Interaction):
+    '''
+    directly called after register button pressed, creating a new profile inside the database
+    '''
     Arcana = random_arca()
     new_user = user(str(interaction.user), interaction.user.id, interaction.guild_id, Arcana)
     if interaction.user.voice != None:
         # user already in vc
-        member_list = interaction.user.voice.channel.members
-        SlinkBot.if_emtpy(member_list, interaction.user.voice)
+        await SlinkBot.refresh_guild_VC(interaction.user.voice.channel)
     user_register(new_user)
 
 def get_arcana(author_id=0, guild_id=0, UserID = None): 

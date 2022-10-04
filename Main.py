@@ -67,7 +67,7 @@ async def register(ctx):
 #@reset.command(name="all")
 async def reset_user(ctx, option: discord.Option(choices=['all', 'user_level'])):
     print(f"reset! {ctx=}, {option=}")
-    await ctx.response.send_message("**WARNING** The action you are about to conduct is **IRREVERSIBLE**\n Are you sure to continue?", view=discordUI.reset_button())
+    await ctx.response.send_message(f"**WARNING** The action you are about to conduct is **IRREVERSIBLE**\n Are you sure to continue resetting **{option}**?", view=discordUI.reset_button(option=option))
         
 @reset_user.error
 async def reset_user_error(ctx, error):

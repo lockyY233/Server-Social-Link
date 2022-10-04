@@ -38,7 +38,7 @@ class SlinkBot(discord.Bot):
         print("Message sent from {0.author}: {0.content}".format(message))
 
     async def on_voice_state_update(self, member, before, after):
-        await VChandler(member, before, after, scheduler)# handle when user join/leave vc
+        await VChandler(member, before, after) # handle when user join/leave vc
         debug_print(f"{CONN_LINE_DICT=}")
         debug_print(f"{PLAYER_DICT=}")
 
@@ -49,10 +49,11 @@ class SlinkBot(discord.Bot):
         pass
 
     async def on_shutdown(self):
-        # backup all crucial information before shutdown
-        # write using pickle
-        # considering signing with hmac in the future
-        # -------------------------------------
+        '''
+        backup all crucial information before shutdown
+
+        considering signing with hmac in the future
+        '''
         # closing all task before shutdown
         for guild in CONN_LINE_DICT.copy():
             # for every conn_line obj in the dictionary
@@ -71,54 +72,75 @@ class SlinkBot(discord.Bot):
             pickle.dump(dict, f)
 
 async def refresh_dict(bot):
+    '''
+    force refresh dictionaries across all guilds.
+
+    ---
+
+    basic structure of data:
+    bot -> guild -> members -> member
+
+    '''
     for guild in bot.guilds:
             for voiceChannel in guild.voice_channels:
                 if voiceChannel.members == []:
                     # pass if voice channel has no members
                     continue
-                member_list = voiceChannel.members
-                await if_emtpy(member_list, voiceChannel)
+                await refresh_guild_VC(voiceChannel)
 
-async def if_emtpy(member_list, after):
-    guild = after.guild
-    # handle the case if the CONN_LINE_DICT is empty due to restart
-    if after.__class__.__name__ == 'VoiceState':
-        guild = after.channel.guild.id
+async def refresh_guild_VC(voiceChannel):
+    '''
+    refresh_guild_VC() refresh one voice channel in one guild
+
+    take in one voice channel
+    '''
+    debug_print("refreshing guilds")
+    member_list = voiceChannel.members
+    guild_id = voiceChannel.guild.id
     print(f"{member_list=}")
+
+    # this for loop initializing PLAYER_DICT, it CANNOT merge with the for loop below
     for mem in member_list:
-        UserID = User.get_UserID(mem.id, guild.id)
+        UserID = User.get_UserID(mem.id, guild_id)
         if UserID == None:
             continue
         new_player_dict(mem, UserID)
-    for mem in range(len(member_list)-1):
-        UserID = User.get_UserID(member_list[0].id, guild.id)
+
+    # this for loop trigger the join_vc_handler
+    for mem in member_list.copy():
+        UserID = User.get_UserID(member_list[0].id, guild_id)
         #print(f"{UserID=}")
         if UserID == None:
             member_list.pop(0)
             continue
         else:
-            #global scheduler
-            new_player = PLAYER_DICT[UserID]
-            await join_vc_handler(member_list, member_list[0], after, UserID, scheduler, new_player)
+            await join_vc_handler(member_list[0], guild_id, UserID, member_list=member_list)
             member_list.pop(0)
 
-async def VChandler(member, before, after, scheduler):
+async def VChandler(member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
+    '''
+    handling all social link with voice chat, called directly by on_voice_state_update()
+
+    mainly control by detecting if user leave or join the vc
+    '''
     UserID = None
 
     if Social_Link_Handler.is_join_vc(before, after):
+        # if user join vc, userID follow after voiceState
         UserID = User.get_UserID(member.id, after.channel.guild.id)
     elif not Social_Link_Handler.is_join_vc(before, after):
+        # if user leave vc, userID follow before voiceState
         UserID = User.get_UserID(member.id, before.channel.guild.id)
     print(f"VChandler: {UserID=}")
 
     if UserID == None:
         return # if user is not registered
     
-    member_list = []# member list for if_empty()
+    #member_list = []# member list for if_empty()
     if Social_Link_Handler.is_join_vc(before, after):
         # if join vc
-        new_player = new_player_dict(member, UserID)
-        await join_vc_handler(member_list, member, after, UserID, scheduler, new_player)
+        new_player_dict(member, UserID)
+        await join_vc_handler(member, after.channel.guild.id, UserID)
 
     elif Social_Link_Handler.is_join_vc(before, after) == False:
         # if leave vc
@@ -136,32 +158,40 @@ async def VChandler(member, before, after, scheduler):
     elif before.channel != None and after.channel != None:
         # other action that trigger update
         if get_guild_in_Connlinedict(after.channel.guild.id) == None:
-            #print(f"{member.voice.channel.members=}")
-            member_list = member.voice.channel.members
-            await if_emtpy(member_list, after)
+            await refresh_guild_VC(member.voice.channel)
 
-async def join_vc_handler(member_list, member, after, UserID, scheduler, new_player):
-    # transfer information to player object
-    guild = after.guild
-    channel = after
-    if after.__class__.__name__ == 'VoiceState':
-        guild = after.channel.guild.id
-        channel = after.channel
+async def join_vc_handler(member: discord.Member, guild_id: int, UserID: int, member_list=[]):
+    '''create conn_line object between each target in the same voiceChannel
 
+    ---
+
+    this function is called in two different scenerio: when user join vc, and when refreshing
+    
+    - when user join:
+    it will take the user as member, and run a for loop with all other member in the vc
+    
+    - when refreshing:
+    similar to the first scenerio, but will pass in the modified member_list. 
+    '''
+    new_player = PLAYER_DICT[UserID] # get player from PLAYER_DICT
+    if member_list == []:
+        member_list = member.voice.channel.members # get all players from the same channel with member
     if len(member_list) <= 1:
         # ignore if there is only one person inside vc
         return
-    
+
+    # for loop include filters if members are not registered
     for target in member_list:
         #print(f"{member=}, {target=}")
-        if target != member and User.is_user_guild_exist(target.id, guild.id):
-            TargetID = User.get_UserID(target.id, guild.id)
+        if target != member and User.is_user_guild_exist(target.id, guild_id):
+            TargetID = User.get_UserID(target.id, guild_id)
             if TargetID == None:
+                #pass if Target did not register
                 continue
-            conn = Social_Link_Handler.conn_line(new_player, PLAYER_DICT[TargetID], channel)
-            await conn.sleep_til_nxt_lvl(scheduler)
+            conn = Social_Link_Handler.conn_line(new_player, PLAYER_DICT[TargetID], member.voice.channel)
+            await conn.sleep_til_nxt_lvl(scheduler)# start leveling timer as soon as conn_line created
             key = (UserID, TargetID)
-            write_conn_line_dict(guild.id, key, conn) # record element into a dictionary
+            write_conn_line_dict(guild_id, key, conn) # record element into a dictionary
 
 async def leave_vc_handler(member_list, before, member, UserID):
     # Delete conn_line obj from CONN_LINE_DICT by predicting key 
@@ -184,6 +214,8 @@ async def leave_vc_handler(member_list, before, member, UserID):
             CONN_LINE_DICT[guild_id].pop(key) # delete element from dict
 
 def write_conn_line_dict(guild_id, key, conn):
+    '''write new conn_line obj to CONN_LINE_DICT
+    '''
     try:
         CONN_LINE_DICT[guild_id][key] = conn
     except Exception as error:
@@ -191,7 +223,10 @@ def write_conn_line_dict(guild_id, key, conn):
             CONN_LINE_DICT[guild_id] = {key: conn}
 
 def new_player_dict(member, UserID) -> Social_Link_Handler.player:
-    # create a new_player base on UserID and member obj
+    '''create a new_player base on UserID and member obj
+
+    **write the new player obj to PLAYER_DICT
+    '''
     new_player = Social_Link_Handler.player(member, UserID)
     new_player.set_join_time()
     PLAYER_DICT[UserID] = new_player

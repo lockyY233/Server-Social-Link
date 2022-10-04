@@ -25,13 +25,20 @@ use for easy look up when creating conn_line object
 '''
 #-----------------------
 class player:
-    # inherit many important stats from member class since we cannot access __dict__ from it
-    # player object recording xp and level information
-    # take in leveling task obj to manage it
-    # will be put in PLAYER_DICT to call it later
-    # destroy it when task is destroyed
-    # merge with vc_time_calc
-    
+    '''
+    hold a member class as its attribute since we cannot access __dict__ from it
+
+    player object recording xp and level information
+
+    take in leveling task obj to manage it
+
+    will be put in PLAYER_DICT to call it later
+
+    destroy it when task is destroyed
+
+    merge with vc_time_calc
+    '''
+
     join_time = 0
     leave_time = 0
     is_left = False
@@ -48,6 +55,7 @@ class player:
             "arcana name": [13, 0] <-- [0] is level, [1] is xp
         }
         """
+        
     def __str__(self) -> str:
         attrs = [
             ("UserID", self.UserID),
@@ -127,8 +135,6 @@ class conn_line:
 
     def __str__(self) -> str:
         attrs = [
-            ("Player1", self.player1.UserID),
-            ("Player2", self.player2.UserID),
             ("channel", self.channel.name)
         ]
         inner = " ".join("%s=%r" % t for t in attrs)
@@ -196,7 +202,6 @@ def time_need(xp_need):
 def xp_gained(time_gained):
     # reverse of the time_need function
     return round(time_gained/(60*2)) # default time_gained/(60*2)
-
 
 # create a new conn_line for newly joined user
 # conn_line is an object that record the timer between two users for every users inside a vc
