@@ -1,3 +1,4 @@
+from dataclasses import MISSING
 import discord
 import Social_Link_Handler
 from Social_Link_Handler import CONN_LINE_DICT, PLAYER_DICT
@@ -19,7 +20,8 @@ window_lib = {}
 class SlinkBot(discord.Bot):
     def __init__(self, *args, **kwargs):
         super(SlinkBot, self).__init__(*args, **kwargs)
-        self.event = None # event for the control pannel window
+        self.event = MISSING # event for the control pannel window
+        self.default_channel = MISSING # default text channel for the bot
 
     async def on_ready(self):
         # set global scheduler for all jobs

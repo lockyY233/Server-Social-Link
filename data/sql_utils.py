@@ -1,4 +1,5 @@
 import sqlite3
+import leveling
 
 '''
 Note:
@@ -52,10 +53,68 @@ def sql_register(user_info):
     curs.execute(Insert_Arca_xp)
     conn.commit()
     conn.close()
-    
+
+def get_level_xp(UserID):
+    conn = sqlite3.connect('data/USER.sqlite')
+    curs = conn.cursor()
+
+    curs.execute(
+        f"SELECT * FROM Arcana_level WHERE UserID={UserID}"
+    )
+    UserLvl = curs.fetchall()
+    UserLvl[0] = UserLvl[0][1:] # remove UserID column
+    UserLvl = UserLvl[0] # break out the tuple from the list
+
+    curs.execute(
+        f"SELECT * FROM Arcana_xp WHERE UserID={UserID}"
+    )
+    UserXp = curs.fetchall()
+    UserXp[0] = UserXp[0][1:]
+    UserXp = UserXp[0] 
+
+    # fill info into this dictionary and return it 
+    S_Link_Level = {
+                    'Fool': [],# [lvl, xp needed]
+                    'Jester': [],
+                    'Magician': [],
+                    'Councillor': [],
+                    'Priestess': [],
+                    'Empress': [],
+                    'Emperor': [],
+                    'Hierophant': [],
+                    'Lovers': [],
+                    'Chariot': [],
+                    'Justice': [],
+                    'Hermit': [],
+                    'Fortune': [],
+                    'Strength': [],
+                    'Hunger': [],
+                    'Hanged Man': [],
+                    'Death': [],
+                    'Temperance': [],
+                    'Devil': [],
+                    'Tower': [],
+                    'Star': [],
+                    'Moon': [],
+                    'Sun': [],
+                    'Judgement': [],
+                    'Aeon': [],
+                    'World': [],
+                    'Faith': []
+    }
+    keys_lst = list(S_Link_Level)
+    for i in range(len(keys_lst)):
+        lvl = UserLvl[i]
+        xp = UserXp[i]
+        xp_need = leveling.xp_need(lvl, xp)
+        S_Link_Level[keys_lst[i]] = [lvl, xp_need]
+    conn.commit()
+    conn.close()
+    return S_Link_Level
+
 def set_level_xp(UserID, arcana, lvl, xp):
-    lvl_querry = f"""UPDATE Arcana_level SET {arcana}={lvl} WHERE UserID = {UserID}"""
-    xp_querry = f"""UPDATE ARcana_xp SET {arcana}={xp} WHERE UserID = {UserID} """
+    lvl_querry = f"UPDATE Arcana_level SET {arcana}={lvl} WHERE UserID = {UserID}"
+    xp_querry = f"UPDATE ARcana_xp SET {arcana}={xp} WHERE UserID = {UserID} "
     print(f"{lvl_querry=}, {xp_querry=}")
     conn = sqlite3.connect('data/USER.sqlite')
     curs = conn.cursor()

@@ -20,11 +20,13 @@ from discord.ext.commands import has_permissions, CheckFailure
 
 from SlinkBot import SlinkBot
 from SlinkBot import *
+from data.sql_utils import get_data, sql_cmd
 import gui
 import Embed_Library
 import User
 from data import Persona_Data
 import discordUI
+from data import sql_utils
 
 import os # default module
 from dotenv import load_dotenv
@@ -61,10 +63,8 @@ async def register(ctx):
         await ctx.respond("You have already registered! Please visit Velvet Room for more info!")
 
 # ------ Reset Command Group------
-#reset = bot.create_group(name="reset")
 @bot.slash_command(name = "reset", description = "Are You Worthy?")
 @has_permissions(administrator = True)
-#@reset.command(name="all")
 async def reset_user(ctx, option: discord.Option(choices=['all', 'user_level'])):
     print(f"reset! {ctx=}, {option=}")
     await ctx.response.send_message(f"**WARNING** The action you are about to conduct is **IRREVERSIBLE**\n Are you sure to continue resetting **{option}**?", view=discordUI.reset_button(option=option))
@@ -77,11 +77,21 @@ async def reset_user_error(ctx, error):
         print("Reset Error" + str(error))
 # ------ Reset Error ------
 
+# - set bot channel - 
+@bot.slash_command(name = 'settings', description='settings for Server S.Link')
+async def settings(ctx):
+    await ctx.respond('Settings for Server S.Link:', view=discordUI.settings())
+
 # - Social link status command
 @bot.slash_command(name = "slink", description = "Check your Social Link progress on different arcana")
 async def slink_menu(ctx):
-    slink_menu = discord.Embed.from_dict(Embed_Library.Slink_embed)
-    await ctx.respond(embed=slink_menu)
+    UserID = User.get_UserID(ctx.author.id, ctx.guild_id)
+    S_link_level = sql_utils.get_level_xp(UserID)
+    slink_menu = Embed_Library.Slink_embed
+    slink_menu['author']['name'] = ctx.author.name
+    slink_menu = discordUI.slink_page_system(S_link_level, slink_menu, 0)
+    slink_embed = discord.Embed.from_dict(slink_menu)
+    await ctx.respond(embed=slink_embed, view=discordUI.slink_menu(Slink_level=S_link_level, Slink_menu=slink_menu))
 
 # - Persona Status Command
 @bot.slash_command(name = "persona", description = "Check your current Persona")

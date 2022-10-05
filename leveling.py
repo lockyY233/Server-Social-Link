@@ -22,3 +22,4 @@ def get_xp(arcana, UserID):
 def set_arcana_level(UserID, arcana, level, xp):
     print(f"{UserID} has wriiten on {arcana} to {level} with {xp=}")
     sql_utils.set_level_xp(UserID, arcana, level, xp)
+

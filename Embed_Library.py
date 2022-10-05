@@ -74,6 +74,7 @@ Menu_embed = {
         }
     ]
 }
+
 I_M_Thou = {# dict for all random Thou art I message
     "Persona 3 Portable": "Thou art I... And I am thou...\nThou hast established a new bond...\nThou shalt be blessed when creating\nPersonas of the ARCANA_DEFAULT Arcana...",
     "Persona 4": "Thou art I... And I am thou...\nThou hast established a new bond...\nIt brings thee closer to the truth...\nThou shalt be blessed when creating\nPersonas of the ARCANA_DEFAULT Arcana...",
@@ -98,9 +99,24 @@ Register_embed = {
         ]
 }
 
-
 Slink_embed = {
     # dict for Slink status embed 
+    'title': 'Social Link PAGE', 
+    'type': 'rich', 
+    'description': 'gain social link rand by spending time with your friends inside voice chat!', 
+    'color': 0xff5900,
+    'footer': {
+        'text': "press the following buttons to change page"
+    },
+    'provider': {
+        'name': "idk what a provider is so here you go"
+    },
+    'author': {
+        'name': 'USER_DEFAULT'
+    },
+    'fields': [
+       
+    ]
 }
 
 Persona_embed = {
