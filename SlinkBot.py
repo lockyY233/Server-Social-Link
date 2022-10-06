@@ -21,7 +21,6 @@ class SlinkBot(discord.Bot):
     def __init__(self, *args, **kwargs):
         super(SlinkBot, self).__init__(*args, **kwargs)
         self.event = MISSING # event for the control pannel window
-        self.default_channel = MISSING # default text channel for the bot
 
     async def on_ready(self):
         # set global scheduler for all jobs

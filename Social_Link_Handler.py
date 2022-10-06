@@ -118,7 +118,7 @@ class player:
         self.Slink_lvl[TargetArcana][0] += 1
         self.Slink_lvl[TargetArcana][1] = 0
         debug_print(f"{self} has forged the bond with {TargetArcana} to {self.Slink_lvl[TargetArcana][0]}")
-        leveling.set_arcana_level(self.UserID, TargetArcana, (self.lvl+1), 0)
+        leveling.set_arcana_level(self.UserID, TargetArcana, self.Slink_lvl[TargetArcana][0], self.Slink_lvl[TargetArcana][1])
 
 class conn_line:
     # create "bond" between each two members in the voice chat
@@ -196,7 +196,7 @@ def is_join_vc(before, after):
 def time_need(xp_need):
     # calculate the time needed for the member to level up
     # return seconds needed to level up
-    return 5*2*xp_need # default 60*2*xp_need
+    return 60*2*xp_need # default 60*2*xp_need
     # current speed 10s/xp
 
 def xp_gained(time_gained):

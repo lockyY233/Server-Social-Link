@@ -1,6 +1,5 @@
-from dataclasses import MISSING
-from logging import PlaceHolder
-from tkinter.tix import Select
+from optparse import Values
+from data import sql_utils
 import discord
 import User
 import discord.ui.button as button
@@ -108,36 +107,81 @@ class settings(discord.ui.View):
     )
     async def settings(self, select, interaction):
         print(f'{select.values[0]=}')
-        
         if select.values[0] == 'Bot Channel':
             current_guild = interaction.guild
-            channel_options = select_channel(current_guild.text_channels)
+            channel_options = select_channel(current_guild.text_channels)# get all channels from the guild
+            if is_guild_setting_exist(interaction.guild.id) == False:
+                q = f'INSERT INTO guild_settings (guild_id) VALUES ({interaction.guild.id})'
+                sql_utils.sql_cmd(q)
+            current_channel = get_guild_settings(current_guild.id, 'bot_channel')
+            if current_channel != None:
+                current_channel = discord.utils.get(interaction.guild.text_channels, id=int(current_channel))
+            content = f'Current default text channel is: **{current_channel}**\nSelect the default bot channel or click the button to select the current channel:'
+            view = bot_channel()
             if len(channel_options) <= 25: # option limit to 25
-                view = bot_channel()
                 view.children[0].options=channel_options
-                await interaction.response.edit_message(content=f'set the default bot channel:',view=view)
+                await interaction.response.edit_message(content=content,view=view)
             else:
-                pass
+                view.remove_item(view.children[0])# remove select menu
+                content = f'Current default text channel is: **{current_channel}**\nYour server have more than 25 text channels! please type this command at your target channel, and press the button to select current channel as default:'
+                await interaction.response.edit_message(content=content,view=view)
             # add option for text channel > 25
+            # add button to set current channel as default
 
 
 class bot_channel(discord.ui.View):
     
     @select(
-        placeholder='Choose the default text channel for the bot',
+        placeholder='Select other text channels as default... or',
         options=[]
     )
     async def select_channel(self, select, interaction):
-        from Main import bot
-        bot.default_channel = select.values[0]
-        await interaction.response.edit_message(content=f"default channel is now: **{bot.default_channel}**",view=None)
+        Values = select.values[0]
+        guild_id = interaction.guild_id
+        setting = 'bot_channel'
+        set_guild_settings(guild_id, setting, Values)
+        channel = discord.utils.get(interaction.guild.text_channels, id=int(select.values[0]))
+        await interaction.response.edit_message(content=f"default channel is now: **{channel}**",view=None)
+    
+    @button(label='click this button to select current channel as default', style=discord.ButtonStyle.success)
+    async def bot_channel_button(self, button, interaction):
+        Values = interaction.channel.id
+        guild_id = interaction.guild_id
+        setting = 'bot_channel'
+        set_guild_settings(guild_id, setting, Values)
+        channel = discord.utils.get(interaction.guild.text_channels, id=interaction.channel.id)
+        await interaction.response.edit_message(content=f"default channel is now: **{channel}**",view=None)
+
+    @button(label='Cancel', style=discord.ButtonStyle.secondary)
+    async def cancel(self, button, interaction):
+        await interaction.response.edit_message(content="Interaction Cancelled", view=None)
+
 
 def select_channel(channel_lst: list):
     options = []
     for channel in channel_lst:
         options.append(
             discord.SelectOption(
-                label=channel.name
+                label=channel.name,
+                value=str(channel.id),
             )
         )
     return options
+
+def get_guild_settings(guild_id, setting) -> dict:
+    guild_settings = sql_utils.get_data(setting, 'guild_settings', f'guild_id={guild_id}')
+    if guild_settings != []:
+        return guild_settings[0][0]
+    else:
+        return None
+
+def is_guild_setting_exist(guild_id):
+    guild_setting = sql_utils.get_data('*', 'guild_settings', f'guild_id={guild_id}')
+    if guild_setting != []:
+        return True
+    else:
+        return False
+
+def set_guild_settings(guild_id, setting, Values):
+    q = f'UPDATE guild_settings SET {setting}={Values} WHERE guild_id={guild_id}'
+    sql_utils.sql_cmd(q)
