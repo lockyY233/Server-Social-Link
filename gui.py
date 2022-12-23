@@ -59,6 +59,7 @@ async def event_handler(event, window):
         from Social_Link_Handler import CONN_LINE_DICT
         PLAYER_DICT = {}
         CONN_LINE_DICT = {}
+        print(f'{PLAYER_DICT=}, {CONN_LINE_DICT=}')
         await refresh_dict(bot)
 def pretty_PLAYER_DICT(dict):
     c_dict = {}

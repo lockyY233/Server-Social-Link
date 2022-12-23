@@ -119,6 +119,19 @@ Slink_embed = {
     ]
 }
 
+level_up_embed = {
+    "type": "rich",
+    "title": 'I am Thou ...Thou art I...',
+    "description": '🎉USER_DEFAULT\'s Social Link with Magician has leveled up to Level USER_LEVEL! ',
+    "color": 0x5eff00,
+    "thumbnail": {
+        "url": ''# url of the thumbnail
+    },
+    "footer": {
+        "text": 'type /slink to see all social link levels'
+    }
+}
+
 Persona_embed = {
     #dict for persona status embed
 }

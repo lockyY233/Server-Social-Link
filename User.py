@@ -94,9 +94,15 @@ def RESET_USER_DB(ctx):
     '''remove all users with the same guild id'''
     sql_utils.sql_reset(ctx.guild_id)
 
-def RESET_USER_LEVEL(ctx):
+async def RESET_USER_LEVEL(ctx):
     '''remove all users level within the same guild'''
-    sql_utils.sql_reset_level(ctx.guild_id)
+    # **known issue: need reset ALL players in player_dict**
+    ID_to_del = sql_utils.sql_reset_level(ctx.guild_id)
+    # refresh dict for guild
+    for voiceChannel in ctx.guild.voice_channels:
+        if voiceChannel.members == []:
+            continue
+        await SlinkBot.refresh_guild_VC(voiceChannel)
 # -----------
 # -- utils --
 def is_user_guild_exist(user_id, guild_id):

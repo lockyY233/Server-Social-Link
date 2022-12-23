@@ -7,6 +7,8 @@ import discord
 import leveling
 import User
 from gui import debug_print
+import discordUI
+from data import sql_utils
 
 #-- Dictionary define
 CONN_LINE_DICT = {
@@ -23,6 +25,7 @@ PLAYER_DICT = {
 this dict contains the task object with a userid as the key
 use for easy look up when creating conn_line object
 '''
+
 #-----------------------
 class player:
     '''
@@ -50,6 +53,7 @@ class player:
         self.job = {}
         self.arcana = User.get_arcana(UserID=UserID)
         self.Slink_lvl ={}
+        # Note: for guild, get it through member so there wont be much complexity
         """
         {
             "arcana name": [13, 0] <-- [0] is level, [1] is xp
@@ -59,7 +63,8 @@ class player:
     def __str__(self) -> str:
         attrs = [
             ("UserID", self.UserID),
-            ("arcana", self.arcana)
+            ("arcana", self.arcana),
+            ("Slink_lvl", self.Slink_lvl),
         ]
         inner = " ".join("%s=%r" % t for t in attrs)
         return f"<{self.__class__.__name__} {inner}>"
@@ -114,10 +119,14 @@ class player:
     def get_total_vc_time(self):
         return self.leave_time - self.join_time
     
-    def level_up(self, TargetArcana):
+    async def level_up(self, TargetArcana):
         self.Slink_lvl[TargetArcana][0] += 1
         self.Slink_lvl[TargetArcana][1] = 0
         debug_print(f"{self} has forged the bond with {TargetArcana} to {self.Slink_lvl[TargetArcana][0]}")
+        # get guild from member reference by player object 
+        guild = self.member.guild
+        channel = discordUI.get_current_channel_settings(guild)
+        await discordUI.on_level_up(channel, self, TargetArcana)
         leveling.set_arcana_level(self.UserID, TargetArcana, self.Slink_lvl[TargetArcana][0], self.Slink_lvl[TargetArcana][1])
 
 class conn_line:
@@ -167,19 +176,18 @@ class conn_line:
         self.player2.setjob(self.player1.arcana, job2)
 
 async def level_coro(player, time_need):
+    '''sleeping coroutine. its a sleeper timer that sleep until player level up'''
     await asyncio.sleep(time_need)
-    debug_print(f"{player} done sleeping for {time_need}s")
-
 
 async def lvling_loop(player, target, scheduler):
-    # handling the level coroutine
+    '''Core of leveling system, its a while loop running in coroutine'''
     while True:
         xp1_need = leveling.xp_need(player.Slink_lvl[target.arcana][0], player.Slink_lvl[target.arcana][1])
         timeneed = time_need(xp1_need)
         debug_print(f"{player}: {timeneed=}")
         task = await scheduler.spawn(level_coro(player, timeneed))
         await task.wait()
-        player.level_up(target.arcana)
+        await player.level_up(target.arcana)
         # break loop
         if not player.is_left:
             debug_print(f"{player}'s leveling has stopped")
@@ -196,12 +204,12 @@ def is_join_vc(before, after):
 def time_need(xp_need):
     # calculate the time needed for the member to level up
     # return seconds needed to level up
-    return 60*2*xp_need # default 60*2*xp_need
-    # current speed 10s/xp
+    return 120*xp_need # default 120*xp_need
+    # current speed 5s/xp
 
 def xp_gained(time_gained):
     # reverse of the time_need function
-    return round(time_gained/(60*2)) # default time_gained/(60*2)
+    return round(time_gained/(120)) # default time_gained/(120)
 
 # create a new conn_line for newly joined user
 # conn_line is an object that record the timer between two users for every users inside a vc

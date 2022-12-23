@@ -77,10 +77,18 @@ async def reset_user_error(ctx, error):
         print("Reset Error" + str(error))
 # ------ Reset Error ------
 
-# - set bot channel - 
+# ------- settings -------
 @bot.slash_command(name = 'settings', description='settings for Server S.Link')
+@has_permissions(administrator = True)
 async def settings(ctx):
     await ctx.respond('Settings for Server S.Link:', view=discordUI.settings())
+
+@settings.error
+async def settings_error(ctx, error):
+    if isinstance(error, CheckFailure):
+        await ctx.respond('Sorry, only admins can change the bot settings!')
+    else:
+        print('Reset Error' + str(error))
 
 # - Social link status command
 @bot.slash_command(name = "slink", description = "Check your Social Link progress on different arcana")
@@ -111,7 +119,7 @@ async def persona(ctx):
 def main():
     loop = asyncio.get_event_loop()
     try:
-        loop.run_until_complete(bot.start(os.getenv('TOKEN')))
+        loop.run_until_complete(bot.start(os.getenv('TOKEN'), reconnect=True))
     except aiohttp.client_exceptions.ClientConnectorError as ConnectError:
         # implement with gui
         gui.print_error(ConnectError)

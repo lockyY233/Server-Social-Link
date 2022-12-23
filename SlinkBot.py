@@ -21,6 +21,7 @@ class SlinkBot(discord.Bot):
     def __init__(self, *args, **kwargs):
         super(SlinkBot, self).__init__(*args, **kwargs)
         self.event = MISSING # event for the control pannel window
+        self.recorded_guilds = None
 
     async def on_ready(self):
         # set global scheduler for all jobs
@@ -34,6 +35,9 @@ class SlinkBot(discord.Bot):
         await refresh_dict(self)
         debug_print(f"{self.user} is ready and online!")
         print(f"{self.user} is ready and online!")
+        # get a list for guilds
+        self.recorded_guilds = self.guilds
+        print(f'{self.recorded_guilds=}')
 
     async def on_message(self, message):
         print("Message sent from {0.author}: {0.content}".format(message))
@@ -94,6 +98,10 @@ async def refresh_guild_VC(voiceChannel):
     refresh_guild_VC() refresh one voice channel in one guild
 
     take in one voice channel
+
+    ---
+
+    **NOTE: **somehow only works in on_ready() where the bot is 'logged in'
     '''
     debug_print("refreshing guilds")
     member_list = voiceChannel.members
@@ -125,7 +133,7 @@ async def VChandler(member: discord.Member, before: discord.VoiceState, after: d
     mainly control by detecting if user leave or join the vc
     '''
     UserID = None
-
+    # - aquire UserID depends if user join the vc or not
     if Social_Link_Handler.is_join_vc(before, after):
         # if user join vc, userID follow after voiceState
         UserID = User.get_UserID(member.id, after.channel.guild.id)
@@ -135,9 +143,9 @@ async def VChandler(member: discord.Member, before: discord.VoiceState, after: d
     print(f"VChandler: {UserID=}")
 
     if UserID == None:
-        return # if user is not registered
+        # user is not registered
+        return 
     
-    #member_list = []# member list for if_empty()
     if Social_Link_Handler.is_join_vc(before, after):
         # if join vc
         new_player_dict(member, UserID)

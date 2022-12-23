@@ -24,13 +24,14 @@ def sql_reset(guild_id):
     sql_cmd(f"DELETE FROM User WHERE guild_id={guild_id}", use_fk=True)
 
 def sql_reset_level(guild_id):
-    '''resetting all levels from user'''
+    '''resetting all levels from user, return the ID_to_del for more purpose'''
     conn = sqlite3.connect('data/USER.sqlite')
     curs = conn.cursor()
     conn.execute("PRAGMA foreign_keys = ON")
     #fetch userid for people within the same guild
     curs.execute(f"SELECT UserID FROM User WHERE guild_id={guild_id}")
     ID_to_del = curs.fetchall()
+    # i.e ID_to_del=[(11,), (12,)]
     for ID in ID_to_del:
         # delete rows and re-add them 
         curs.execute(f"DELETE FROM Arcana_level WHERE UserID={ID[0]}")
@@ -39,6 +40,7 @@ def sql_reset_level(guild_id):
         curs.execute(f"INSERT INTO ARcana_xp (UserID) VALUES ({ID[0]})")
     conn.commit()
     conn.close()
+    return ID_to_del
 
 def sql_register(user_info):
     # take in a user dictionary with basic info, register info into dbconn = sqlite3.connect('data/USER.sqlite')
